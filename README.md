@@ -22,13 +22,4 @@ Tento projekt sa sklada z troch reactovskych component:
 
 Hlavna komponenta je Ingredients. Obsahuje vsetky tri komponenty. V tejto komponente je definovany sposob ukladania stavu dvoch vstupnych hodnot a nasledne vykreslenie celeho pola prvkov s ulozenymi stavmi. Tiez je moznost zmazat jeden ulozeny prvok alebo vsetky. Dalej je tam definovany sposob filtrovania ulozenych prvkov.
 
-Na uchovanie stavov sme pouzili react useState hook. Na kontrolu a filtorvanie prvkov sme pouzili useEffect.
-
-```
-
-```
-
-D.U.
-1.mas pole cisel od 1 do 10. vramci consoly vypis len cisla vacsie ako 2, mensie ako 4. (filter)
-2.vytvorit komponentu vramci tohto projektu, bude sa volat Loading. Bude vraciat jedno div, ktore bude obsahovat 3 divka. Tie 3 divka maju byt gulicky umiestnene vedla seba. plus text ako na obrazku
-3.okomentovat kod
+Na uchovanie stavov sme pouzili react useState hook. Na kontrolu a filtrovanie prvkov sme pouzili useEffect.

@@ -1,14 +1,12 @@
 import React from 'react'
 import styled from 'styled-components'
+import Title from '../../Title'
 
 const Wrapper = styled.section``
 
-const Title = styled.h2`
-	font-weight: bold;
-	font-size: 22px;
+const StyledTitle = styled(Title)`
 	border-bottom: 3px solid grey;
 	padding-top: 50px;
-	padding-bottom: 20px;
 `
 const List = styled.ul`
 	margin-top: 30px;
@@ -36,9 +34,9 @@ const Amount = styled.span`
 export default function IngredientList(props) {
 	return (
 		<Wrapper>
-			<Title>Loaded ingredients</Title>
+			<StyledTitle>Loaded ingredients</StyledTitle>
 			<List>
-				{props.userIngredients.map(item => (
+				{props.ingredients.map(item => (
 					<Item onClick={props.onRemovedItem.bind(this, item.id)} key={item.id}>
 						<Name>{item.title}</Name>
 						<Amount>{item.amount}x</Amount>

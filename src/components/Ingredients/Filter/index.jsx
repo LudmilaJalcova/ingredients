@@ -1,15 +1,15 @@
-import React, { memo, useState } from 'react'
+import React, { memo, useEffect, useState, useRef } from 'react'
 import styled from 'styled-components'
+import Card from '../../Card'
+import useHttp from '../../../hooks/http'
+import ErrorModal from '../../ErrorModal'
+import Loading from '../../Loading'
 
-const Wrapper = styled.form`
+const Wrapper = styled(Card)`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	height: 80px;
-	padding: 20px;
-	margin-top: 30px;
-	box-shadow: 0px 1px 7px 4px rgb(128 128 128 / 45%);
-	border-radius: 3px;
 `
 const Text = styled.div`
 	font-weight: bold;
@@ -23,12 +23,60 @@ const Input = styled.input`
 `
 
 const Filter = props => {
-	// const [enteredFilter, setEnteredFilter] = useState('')
+	const { onLoadIngredients } = props
+	const [enteredFilter, setEnteredFilter] = useState('')
+	const inputRef = useRef()
 
-	return (
+	const { isLoading, data, error, sendRequest, clear } = useHttp()
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (enteredFilter === inputRef.current.value) {
+				const query =
+					enteredFilter.length === 0
+						? ''
+						: `?orderBy="title"&equalTo="${enteredFilter}"`
+				sendRequest(
+					'https://react-ingredients-example.firebaseio.com/ingredients.json' +
+						query,
+					'GET'
+				)
+			}
+		}, 500)
+		return () => {
+			clearTimeout(timer)
+		}
+	}, [enteredFilter, inputRef, sendRequest])
+
+	useEffect(() => {
+		if (!isLoading && !error && data) {
+			const loadedIngredients = []
+			for (const key in data) {
+				// console.log(data[key].title)
+				loadedIngredients.push({
+					id: key,
+					title: data[key].title,
+					amount: data[key].amount,
+				})
+			}
+			onLoadIngredients(loadedIngredients)
+		}
+	}, [data, isLoading, error, onLoadIngredients])
+
+	return isLoading ? (
+		<Loading />
+	) : (
 		<Wrapper>
+			{error && <ErrorModal onClose={clear}>{error}</ErrorModal>}
 			<Text>Filter by Title</Text>
-			<Input ref={props.inputRef} onChange={props.onFilterItem} />
+			<Input
+				ref={inputRef}
+				type="text"
+				value={enteredFilter}
+				onChange={event => {
+					setEnteredFilter(event.target.value)
+				}}
+			/>
 		</Wrapper>
 	)
 }

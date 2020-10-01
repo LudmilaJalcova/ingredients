@@ -4,6 +4,7 @@ import App from './App'
 import * as serviceWorker from './serviceWorker'
 import 'reset-css'
 import { createGlobalStyle } from 'styled-components'
+import AuthContextProvider from './context/auth-context'
 
 const GlobalStyle = createGlobalStyle`
   html, body, #root {
@@ -38,7 +39,9 @@ const GlobalStyle = createGlobalStyle`
 ReactDOM.render(
 	<React.StrictMode>
 		<GlobalStyle />
-		<App />
+		<AuthContextProvider>
+			<App />
+		</AuthContextProvider>
 	</React.StrictMode>,
 	document.getElementById('root')
 )

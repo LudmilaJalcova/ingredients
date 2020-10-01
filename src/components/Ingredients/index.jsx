@@ -1,103 +1,107 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useEffect, useCallback, useReducer, useMemo } from 'react'
 import styled from 'styled-components'
 import Form from './Form'
 import List from './List'
 import Filter from './Filter'
-import Loading from './Loading'
+import Loading from '../Loading'
+import ErrorModal from '../ErrorModal'
+import useHttp from '../../hooks/http'
 
 const Wrapper = styled.div`
 	margin: 0 auto;
 	max-width: 600px;
 	width: 100%;
 `
+const ingredientReducer = (currentIngredients, action) => {
+	switch (action.type) {
+		case 'SET':
+			return action.ingredients
+		case 'ADD':
+			return [...currentIngredients, action.ingredient]
+		case 'DELETE':
+			return currentIngredients.filter(ing => ing.id !== action.id)
+		default:
+			throw new Error('Should not get there!')
+	}
+}
 
 export default function Ingredients() {
+	const [userIngredients, dispatch] = useReducer(ingredientReducer, [])
+	const {
+		isLoading,
+		data,
+		error,
+		sendRequest,
+		reqExtra,
+		reqIdentifier,
+		clear,
+	} = useHttp()
+
 	//hook na uchovanie stavu nasho pola
-	const [userIngredients, setUserIngredients] = useState([])
-	//hook na uchovanie toho, co piseme do inputu
-	const [searchTerm, setSearchTerm] = useState('')
-	//hook na ukladanie vyfiltrovanej polozky
-	const [results, setResults] = useState([])
+	// const [userIngredients, setUserIngredients] = useState([])
+	// const [isLoading, setIsLoading] = useState(false)
+	// const [error, setError] = useState()
 
 	useEffect(() => {
-		fetch('https://react-ingredients-example.firebaseio.com/ingredients.json')
-			.then(res => res.json())
-			.then(responseData => {
-				// console.log(responseData)
-				const loadIngredients = []
-				for (const key in responseData) {
-					// console.log(responseData[key].title)
-					loadIngredients.push({
-						id: key,
-						title: responseData[key].title,
-						amount: responseData[key].amount,
-					})
-				}
-				setUserIngredients(loadIngredients)
-			})
+		if (!isLoading && !error && reqIdentifier === 'REMOVE_INGREDIENT') {
+			dispatch({ type: 'DELETE', id: reqExtra })
+		} else if (!isLoading && !error && reqIdentifier === 'ADD_INGREDIENT') {
+			dispatch({ type: 'ADD', ingredient: { id: data.name, ...reqExtra } })
+		}
+	}, [data, reqExtra, reqIdentifier, isLoading, error])
+
+	const filteredIngredientsHandler = useCallback(filteredIngredients => {
+		dispatch({ type: 'SET', ingredients: filteredIngredients })
 	}, [])
 
-	useEffect(() => {
-		console.log('RENDERING INGREDIENTS', userIngredients)
-	}, [userIngredients])
-
 	//pridavanie polozky
-	const onAddIngredient = ingredient => {
-		fetch('https://react-ingredients-example.firebaseio.com/ingredients.json', {
-			method: 'POST',
-			body: JSON.stringify(ingredient),
-			headers: { 'Content-Type': 'application/json' },
-		})
-			.then(res => {
-				return res.json()
-			})
-			.then(responseData => {
-				setUserIngredients(prevIngredients => {
-					//do pola cez spred operator naplnime vsetko co pole uz obsahovalo, vygenerujeme mu id a pridame novovytvorenu polozku
-					return [
-						...prevIngredients,
-						{
-							id: responseData.name,
-							...ingredient,
-						},
-					]
-				})
-			})
-	}
-	//odoberanie polozky
-	const removedIngredientHandler = ingredientId => {
-		console.log(ingredientId)
-		setUserIngredients(prevIngredients =>
-			//pomocou metody filter zmazeme polozky, ktore vyhovuju zadanej podmienke
-			prevIngredients.filter(ingredient => ingredient.id !== ingredientId)
-		)
-	}
+	const addIngredientHandler = useCallback(
+		ingredient => {
+			sendRequest(
+				'https://react-ingredients-example.firebaseio.com/ingredients.json',
+				'POST',
+				JSON.stringify(ingredient),
+				ingredient,
+				'ADD_INGREDIENT'
+			)
+		},
+		[sendRequest]
+	)
 
-	const inputRef = useRef(null)
-	//useEffect sa spusti vzdy, ked nastane zmena v searchTerm alebo v userIngredients
-	useEffect(() => {
-		//pomocou metody filter hladame polozky, ktore maju rovnaky nazov ako prave zadany text v inpute
-		const result = userIngredients.filter(ingredient =>
-			ingredient.title.includes(searchTerm)
-		)
-		//pomocou setResults ostanu zobrazene len polozky vyhovujuce zadanemu slovu v inpute
-		setResults(result)
-	}, [searchTerm, userIngredients])
+	//odoberanie polozky
+	const removedIngredientHandler = useCallback(
+		ingredientId => {
+			sendRequest(
+				`https://react-ingredients-example.firebaseio.com/ingredients/${ingredientId}.json`,
+				'DELETE',
+				null,
+				ingredientId,
+				'REMOVE_INGREDIENT'
+			)
+		},
+		[sendRequest]
+	)
+
+	console.log('a', userIngredients)
+
+	const ingredientsList = useMemo(
+		() => (
+			<List
+				onRemovedItem={removedIngredientHandler}
+				ingredients={userIngredients}
+			/>
+		),
+		[userIngredients, removedIngredientHandler]
+	)
 
 	return (
 		<Wrapper>
-			<Form onAddIngredient={onAddIngredient} />
-			<Filter
-				inputRef={inputRef}
-				onFilterItem={() => {
-					setSearchTerm(inputRef.current.value)
-				}}
-			/>
-			<List
-				onRemovedItem={removedIngredientHandler}
-				userIngredients={results}
-			/>
-			<Loading />
+			{error && <ErrorModal onClose={clear}>{error}</ErrorModal>}
+			<Form onAddIngredient={addIngredientHandler} />
+			<Filter onLoadIngredients={filteredIngredientsHandler} />
+			{isLoading ? <Loading /> : ingredientsList}
 		</Wrapper>
 	)
 }
+
+//zglobalizovat vsetko co sa opakuje, title, description, wrapper(nazvat ako Card)
